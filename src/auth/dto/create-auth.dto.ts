@@ -19,3 +19,18 @@ export class CodeAuthDto {
     @IsNotEmpty({message: "code is not empty"})
     code: string;
 }
+
+export class ChangePasswordAuthDto {
+ 
+    @IsNotEmpty({message: "code is not empty"})
+    code: string;
+
+    @IsNotEmpty({message: "password is not empty"})
+    password: string;
+
+    @IsNotEmpty({message: "confirmPassword is not empty"})
+    confirmPassword: string;
+
+    @IsNotEmpty({message: "email is not empty"})
+    email: string;
+}

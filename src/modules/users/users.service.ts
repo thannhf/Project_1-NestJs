@@ -7,10 +7,11 @@ import { Model } from 'mongoose';
 import { hashPasswordHelper } from '@/helpers/util';
 import aqp from 'api-query-params';
 import mongoose from 'mongoose';
-import { CodeAuthDto, CreateAuthDto } from '@/auth/dto/create-auth.dto';
+import { ChangePasswordAuthDto, CodeAuthDto, CreateAuthDto } from '@/auth/dto/create-auth.dto';
 import { v4 as uuidv4 } from 'uuid';
 import dayjs from 'dayjs';
 import { MailerService } from '@nestjs-modules/mailer';
+import passport from 'passport';
 
 @Injectable()
 export class UsersService {
@@ -184,5 +185,60 @@ export class UsersService {
       }
     })
     return {_id: user._id}
+  }
+
+  async retryPassword(email: string) {
+    // check email
+    const user = await this.userModel.findOne({email})
+
+    if(!user) {
+      throw new BadRequestException("account khong ton tai")
+    }
+
+    // send email
+    const codeId = uuidv4();
+    
+    // update user
+    await user.updateOne({
+      codeId: codeId,
+      codeExpired: dayjs().add(5, 'minutes')
+    })
+
+    // send email
+    this.mailerService.sendMail({
+      to: user.email, // list of receivers
+      subject: 'change your password account at ✔', // Subject line
+      template: "register", 
+      context: {
+        name: user?.name ?? user.email,
+        activationCode: codeId
+      }
+    })
+    return {_id: user._id, email: user.email}
+  }
+
+  async changePassword(data: ChangePasswordAuthDto) {
+    if(data.confirmPassword !== data.password) {
+      throw new BadRequestException("password/ confirm password incorect")
+    }
+    // check email
+    const user = await this.userModel.findOne({email: data.email})
+
+    if(!user) {
+      throw new BadRequestException("account khong ton tai")
+    }
+
+    // check expire code
+    const isBeforeCheck = dayjs().isBefore(user.codeExpired);
+
+    if(isBeforeCheck) {
+      // valid => update password
+      const newPassword = await hashPasswordHelper(data.password);
+      await user.updateOne({password: newPassword})
+      return {isBeforeCheck};
+    } else {
+      throw new BadRequestException('code is not define or late time')
+    }
+
   }
 }
