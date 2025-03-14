@@ -10,3 +10,12 @@ export class CreateAuthDto {
     @IsOptional()
     name: string
 }
+
+
+export class CodeAuthDto {
+    @IsNotEmpty({message: "id is not empty"})
+    _id: string;
+
+    @IsNotEmpty({message: "code is not empty"})
+    code: string;
+}
